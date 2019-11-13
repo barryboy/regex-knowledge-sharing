@@ -1,0 +1,162 @@
+---
+title: "Wyrażenia regularne - knowledge sharing"
+author: Michał Ziembowicz
+date: November 13, 2019
+output:
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+---
+
+# WPROWADZENIE
+
+## **Co to są wyrażenia regularne?**
+
+"A **regular expression** (**regex** or **regexp** for short) is a special text string for describing a search pattern. You can think of regular expressions as wildcards on steroids. You are probably familiar with wildcard notations such as ```\*.txt``` to find all text files in a file manager. The regex equivalent is ```^.*\.txt$``` "
+
+Definicja ze strony [www.regular-expressions.info](https://www.regular-expressions.info/) (*polecam!*)
+
+## Przygotowanie
+
+W tym tutorialu zajmiemy się wyrażeniami regularnymi w środowisku R. W tym celu musimy zacząć od wprowadzenia dwóch przydatnych funkcji z pakietu ***stringr***:
+
+- str_extract
+- str_match
+
+Zacznijmy od załadowania biblioteki:
+```{r}
+library(stringr)
+```
+
+---
+
+Pierwsza funkcja to **```stringr::str_extract```**. Jej działanie jest bardzo proste i analogiczne do wyszukiwania plików na dysku lub słów w dokumencie. Składnia jest dość oczywista: ```str_extract(string, pattern)```, zwracana wartość to wektor pasujących napisów.
+
+Możemy jej użyć na jednym napisie:
+```{r}
+napis <- 'jestem napisem'
+str_extract(string = napis, pattern = '^.+$')
+```
+
+---
+
+...lub na wektorze napisów (szukamy napisu 'napis' + jakaś liczba):
+
+```{r}
+napisy <- c('napis1', 'napis2', 'napis3', 'napisA')
+str_extract(string = napisy, pattern = '^.+\\d$')
+```
+
+
+...a w szczególności na kolumnie danych:
+
+```{r}
+napisy_df <- data.frame(A = c('napis1', 'napis2', 'napis3', 'napisA')
+                        , B = c('napisC', 'napisD', 'napis3', 'napis9')
+                        , stringsAsFactors = F)
+
+sapply(napisy_df, str_extract, '^.+\\d$') # Używajcie lapply/sapply/mapply/apply ! ;P
+```
+
+---
+
+Działanie funkcji **```stringr::str_match```** jest nieco bardziej złożone. Służy ona do wyszukiwania interesujących fragmentów napisów. Poprzednia funkcja pozwalała stwierdzić czy dany napis pasuje do wzorca, na przykład: czy jest numerem telefonu albo adresem email. Co jednak w sytuacji kiedy chcemy np.: z adresu mailowego wyekstrahować imię lub domenę? 
+
+
+Spróbujmy na pojedynczym napisie:
+```{r}
+adres <- 'michal.ziembowicz@mediacom.com'
+str_match(adres, '^(.+)@(.+\\..+)$')
+```
+
+Udało się! W kolejnych kolumnach macierzy mamy cąłe dopasowanie (jak w str_extract) oraz kolejne fragmenty (imię i domenę).
+W tym momencie niech użyte wyrażenie pozostanie magią, ale po koniec kursu nauczymy się jak zrobić to (i więcej) samemu.
+
+---
+
+Oczywiście tu również możemy jako argumentu użyć wektora napisów albo kolumny z ramki danych:
+
+```{r}
+adresy_df <- data.frame(A = c('michal.ziembowicz@mediacom.com'
+                              , 'ktos.inny@mediacom.com'
+                              , 'ktos.obcy@starcom.com'))
+lapply(adresy_df, str_match, '^(.+)@(.+\\..+)$')
+```
+
+# Regex Quickstart
+
+## Dopasowywanie znaków
+
+Zacznijmy od dopasowywania pojedynczych znaków. Znak specjalny '```.```' zastępuje dowolny znak (w tym spację i tab!)
+
+Jako bazy użyjemy ramki z kolumną zawierająca rózne napisy:
+```{r}
+napisy_df <- data.frame(napis = c('abc', '12345', '', NA, 'abc123', '   ', '\t')
+                        , stringsAsFactors = F)
+```
+
+---
+
+Dopasujmy teraz różne ilości kropek:
+```{r}
+napisy_df$dopasowanie1 <- str_extract(napisy_df$napis, '.')
+napisy_df$dopasowanie2 <- str_extract(napisy_df$napis, '..')
+napisy_df$dopasowanie3 <- str_extract(napisy_df$napis, '...')
+napisy_df
+```
+
+Bardzo ładnie, ale mało praktycznie...
+
+---
+
+Znaki ```+``` i ```*``` pozwalają na dopasowanie wielu jednakowych znaków jednocześnie. 
+
+- ```+```  - 1 lub więcej wystąpień znaku
+- ```*```  - 0 lub więcej wystąpień znaku
+
+Zobaczmy:
+
+```{r}
+napisy_df[,2:ncol(napisy_df)] <- NULL
+napisy_df$dopasowanie1 <- str_extract(napisy_df$napis, '.+')
+napisy_df$dopasowanie2 <- str_extract(napisy_df$napis, '.*')
+napisy_df
+```
+
+---
+
+Dopasowywanie dowolnych znaków jest nudne. Spróbujmy poszukać bardziej specyficznego:
+
+```{r}
+napisy_df[,2:ncol(napisy_df)] <- NULL
+napisy_df$biale_znaki <- str_extract(napisy_df$napis, '\\s+')
+napisy_df$nie_biale_znaki <- str_extract(napisy_df$napis, '\\S+')
+napisy_df$alfanumeryczne <- str_extract(napisy_df$napis, '\\w+')
+napisy_df$nie_alfanumeryczne <- str_extract(napisy_df$napis, '\\W+')
+napisy_df$cyfry <- str_extract(napisy_df$napis, '\\d+')
+napisy_df$nie_cyfry <- str_extract(napisy_df$napis, '\\D+')
+as.data.frame(napisy_df)
+```
+
+---
+
+Używając notacji ```[ ]``` możemy Jeszcze bardziej specyficznie określić klasę poszukiwanych znaków:
+
+```{r}
+napis <- c('mediacom', 'Mediacom', 'Starcom', 'm123')
+str_extract(napis, '[a-z]+')
+```
+```{r}
+str_extract(napis, '[a-zA-Z]+')
+```
+
+```{r}
+str_extract(napis, '[1-9]+')
+```
+
+```{r}
+str_extract(napis, '[1-9A-M]+')
+```
+
+---
+
