@@ -30,7 +30,7 @@ library(stringr)
 
 ---
 
-Pierwsza funkcja to **```stringr::str_extract```**. Jej działanie jest bardzo proste i analogiczne do wyszukiwania plików na dysku lub słów w dokumencie. Składnia jest dość oczywista: ```str_extract(string, pattern)```, zwracana wartość to wektor pasujących napisów.
+Pierwsza funkcja to **```stringr::str_extract```** / **```stringr::str_extract_all```**. Jej działanie jest bardzo proste i analogiczne do wyszukiwania plików na dysku lub słów w dokumencie. Składnia jest dość oczywista: ```str_extract(string, pattern)```, zwracana wartość to pasujący fragment lub wektor pasujących fragmentów napisów.
 
 Możemy jej użyć na jednym napisie:
 ```{r}
@@ -55,12 +55,23 @@ napisy_df <- data.frame(A = c('napis1', 'napis2', 'napis3', 'napisA')
                         , B = c('napisC', 'napisD', 'napis3', 'napis9')
                         , stringsAsFactors = F)
 
-sapply(napisy_df, str_extract, '^.+\\d$') # Używajcie lapply/sapply/mapply/apply ! ;P
+pander::pander(sapply(napisy_df, str_extract, '^.+\\d$')) # Używajcie lapply/sapply/mapply/apply ! ;P
 ```
+
 
 ---
 
-Działanie funkcji **```stringr::str_match```** jest nieco bardziej złożone. Służy ona do wyszukiwania interesujących fragmentów napisów. Poprzednia funkcja pozwalała stwierdzić czy dany napis pasuje do wzorca, na przykład: czy jest numerem telefonu albo adresem email. Co jednak w sytuacji kiedy chcemy np.: z adresu mailowego wyekstrahować imię lub domenę? 
+Wersja **```stringr::str_extract_all```** daje możliwość wyszukania wszystkich wystąpień szukanego wzorca:
+
+```{r}
+napis <- 'dog cat hen_dog, owl cat, dog cat dogcatowldog'
+str_extract_all(napis, 'dog+')
+```
+
+
+---
+
+Działanie funkcji **```stringr::str_match```** / **```stringr::str_match_all```** jest nieco bardziej złożone. Służy ona do wyszukiwania interesujących fragmentów napisów. Poprzednia funkcja pozwalała stwierdzić czy dany napis pasuje do wzorca, na przykład: czy jest numerem telefonu albo adresem email. Co jednak w sytuacji kiedy chcemy np.: z adresu mailowego wyekstrahować imię lub domenę? 
 
 
 Spróbujmy na pojedynczym napisie:
@@ -102,45 +113,71 @@ Dopasujmy teraz różne ilości kropek:
 napisy_df$dopasowanie1 <- str_extract(napisy_df$napis, '.')
 napisy_df$dopasowanie2 <- str_extract(napisy_df$napis, '..')
 napisy_df$dopasowanie3 <- str_extract(napisy_df$napis, '...')
-napisy_df
+pander::pander(napisy_df)
 ```
 
 Bardzo ładnie, ale mało praktycznie...
 
 ---
 
-Znaki ```+``` i ```*``` pozwalają na dopasowanie wielu jednakowych znaków jednocześnie. 
+Znaki ```?```, ```+``` i ```*``` pozwalają na dopasowanie wielu jednakowych znaków jednocześnie. 
 
+- ```?```  - 0 lub 1 wystąpień znaku
 - ```+```  - 1 lub więcej wystąpień znaku
 - ```*```  - 0 lub więcej wystąpień znaku
 
 Zobaczmy:
 
 ```{r}
-napisy_df[,2:ncol(napisy_df)] <- NULL
-napisy_df$dopasowanie1 <- str_extract(napisy_df$napis, '.+')
-napisy_df$dopasowanie2 <- str_extract(napisy_df$napis, '.*')
-napisy_df
+napisy_df <- data.frame(napis = c('aaa', '1224445', '', NA, 'abc123')
+                        , stringsAsFactors = F)
+napisy_df$`dopasowanie .+` <- str_extract(napisy_df$napis, '.+')
+napisy_df$`dopasowanie .*` <- str_extract(napisy_df$napis, '.*')
+napisy_df$`dopasowanie .?` <- str_extract(napisy_df$napis, '.?')
+pander::pander(napisy_df)
 ```
+
+---
+
+Możemy być bardziej specyficznie i określić o ile dokładnie wystąpień nam chodzi. Służy do tego notacja ```{}```
+
+- ```{n}``` - **n** wystąpień znaku
+- ```{n,}``` - conajmniej **n**  wystąpień znaku
+- ```{n,m}``` - więcej niż **n** ale nie więcej niż **m** wystąpień znaku
+
+
+```{r}
+napisy_df <- data.frame(napis = c('aa', 'aaa', 'aaaaaaaa')
+                        , stringsAsFactors = F)
+napisy_df$`dopasowanie .{2}` <- str_extract_all(napisy_df$napis, '.{2}')
+napisy_df$`dopasowanie .{2,}` <- str_extract_all(napisy_df$napis, '.{3,}')
+napisy_df$`dopasowanie .{2,4}` <- str_extract_all(napisy_df$napis, '.{3,4}')
+pander::pander(napisy_df)
+```
+
+---
+
+Tu jest miejsce na ważną dygresję o wyrażeniach **zachłannych** i **leniwych** czyli **greedy** i **lazy**.
 
 ---
 
 Dopasowywanie dowolnych znaków jest nudne. Spróbujmy poszukać bardziej specyficznego:
 
-```{r}
-napisy_df[,2:ncol(napisy_df)] <- NULL
-napisy_df$biale_znaki <- str_extract(napisy_df$napis, '\\s+')
-napisy_df$nie_biale_znaki <- str_extract(napisy_df$napis, '\\S+')
-napisy_df$alfanumeryczne <- str_extract(napisy_df$napis, '\\w+')
-napisy_df$nie_alfanumeryczne <- str_extract(napisy_df$napis, '\\W+')
-napisy_df$cyfry <- str_extract(napisy_df$napis, '\\d+')
-napisy_df$nie_cyfry <- str_extract(napisy_df$napis, '\\D+')
-as.data.frame(napisy_df)
+```{r results='asis'}
+napisy_df <- data.frame(napis = c('abc', '12345', 'a-1', NA, 'abc123', '\t')
+                        , stringsAsFactors = F)
+napisy_df$`\\\\s+`<- str_extract(napisy_df$napis, '\\s+') # białe znaki
+napisy_df$`\\\\S+` <- str_extract(napisy_df$napis, '\\S+') # nie białe znaki
+napisy_df$`\\\\w+` <- str_extract(napisy_df$napis, '\\w+') # alfanumeryczne
+napisy_df$`\\\\W+` <- str_extract(napisy_df$napis, '\\W+') # nie alfanumeryczne
+napisy_df$`\\\\d+` <- str_extract(napisy_df$napis, '\\d+') # cyfry
+napisy_df$`\\\\D+` <- str_extract(napisy_df$napis, '\\D+') # nie cyfry
+pander::pander(as.data.frame(napisy_df))
 ```
 
 ---
 
-Używając notacji ```[ ]``` możemy Jeszcze bardziej specyficznie określić klasę poszukiwanych znaków:
+Używając notacji **```[ ]```** możemy Jeszcze bardziej specyficznie określić klasę poszukiwanych znaków:
 
 ```{r}
 napis <- c('mediacom', 'Mediacom', 'Starcom', 'm123')
@@ -159,4 +196,18 @@ str_extract(napis, '[1-9A-M]+')
 ```
 
 ---
+
+Notacja **```[ ]```** pozwala na wyszukanie pewnej liczby znaków określonej kategorii, ale bez zachowania kolejności:
+
+```{r}
+napisy <- c('aaabbbccc', 'aaacccbbb', 'aaaabbccc')
+str_extract(napisy, '[abc]+')
+
+```
+
+Gdybysmy jednak chcieli wyszukać napis **'aaabbbccc'** (każda litera po 3 razy), ale nie **'aaacccbbb'** lub **'aaaabbccc'**, zapis **'[abc]+'** nam nie pomoże. Moglibyśmy poradzić sobie w taki sposób:
+
+```{r}
+str_extract(napisy, 'a{3}b{3}c{3}')
+```
 
