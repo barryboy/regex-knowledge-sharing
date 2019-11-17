@@ -1,11 +1,12 @@
 ---
-title: "Wyrażenia regularne - knowledge sharing"
-author: Michał Ziembowicz
-date: November 13, 2019
+title: "Wyrażenia regularne w R"
+author: "Michał Ziembowicz"
+date: "November 18, 2019"
 output:
   ioslides_presentation:
-    widescreen: true
-    smaller: true
+    smaller: yes
+    widescreen: yes
+subtitle: (knowledge sharing)
 ---
 
 # WPROWADZENIE
@@ -14,19 +15,28 @@ output:
 
 "A **regular expression** (**regex** or **regexp** for short) is a special text string for describing a search pattern. You can think of regular expressions as wildcards on steroids. You are probably familiar with wildcard notations such as ```\*.txt``` to find all text files in a file manager. The regex equivalent is ```^.*\.txt$``` "
 
-Definicja ze strony [www.regular-expressions.info](https://www.regular-expressions.info/) (*polecam!*)
+Definicja ze strony [www.regular-expressions.info](https://www.regular-expressions.info/) (***polecam!***, choć mało przyjazna, ale jest wszystko)
 
-## Przygotowanie
+Regex to koncept wynaleziony jeszcze w latach 1950' i spopularyzowany przez standard POSIX oraz język Perl i systemy UNIXowe w latach 1980' (https://en.wikipedia.org/wiki/Regular_expression).
 
-W tym tutorialu zajmiemy się wyrażeniami regularnymi w środowisku R. W tym celu musimy zacząć od wprowadzenia dwóch przydatnych funkcji z pakietu ***stringr***:
+Wśród języków programowania to dinozaur, który nie wymarł i ma się dobrze. Szanujmy go ;)
 
-- str_extract
-- str_match
+# Przygotowanie
+
+---
+
+W tym tutorialu zajmiemy się wyrażeniami regularnymi w środowisku R. W tym celu musimy zacząć od wprowadzenia dwóch przydatnych funkcji z pakietu **stringr**:
+
+- **str_extract** / **str_extract_all**
+- **str_match** / **str_extract_all**
 
 Zacznijmy od załadowania biblioteki:
 ```{r}
 library(stringr)
 ```
+<br><br><br><br>
+
+Warto wspomnieć, że funkcje z pakietu ***base***, przeznaczone do wyrażeń regularnych to: **grep** / **grepl** oraz **sub** / **gsub**, do których stosowania gorąco namawiam osoby mające w sobie duszę nerda, albo używające Linux'a (co w sumie na jedno wychodzi ;) )
 
 ---
 
@@ -35,7 +45,7 @@ Pierwsza funkcja to **```stringr::str_extract```** / **```stringr::str_extract_a
 Możemy jej użyć na jednym napisie:
 ```{r}
 napis <- 'jestem napisem'
-str_extract(string = napis, pattern = '^.+$')
+str_extract(string = napis, pattern = '.+')
 ```
 
 ---
@@ -44,7 +54,7 @@ str_extract(string = napis, pattern = '^.+$')
 
 ```{r}
 napisy <- c('napis1', 'napis2', 'napis3', 'napisA')
-str_extract(string = napisy, pattern = '^.+\\d$')
+str_extract(string = napisy, pattern = '.+\\d')
 ```
 
 
@@ -55,7 +65,7 @@ napisy_df <- data.frame(A = c('napis1', 'napis2', 'napis3', 'napisA')
                         , B = c('napisC', 'napisD', 'napis3', 'napis9')
                         , stringsAsFactors = F)
 
-pander::pander(sapply(napisy_df, str_extract, '^.+\\d$')) # Używajcie lapply/sapply/mapply/apply ! ;P
+pander::pander(sapply(napisy_df, str_extract, '.+\\d')) # Używajcie lapply/sapply/mapply/apply ! ;P
 ```
 
 
@@ -65,7 +75,7 @@ Wersja **```stringr::str_extract_all```** daje możliwość wyszukania wszystkic
 
 ```{r}
 napis <- 'dog cat hen_dog, owl cat, dog cat dogcatowldog'
-str_extract_all(napis, 'dog+')
+str_extract_all(napis, 'dog')
 ```
 
 
@@ -77,7 +87,7 @@ Działanie funkcji **```stringr::str_match```** / **```stringr::str_match_all```
 Spróbujmy na pojedynczym napisie:
 ```{r}
 adres <- 'michal.ziembowicz@mediacom.com'
-str_match(adres, '^(.+)@(.+\\..+)$')
+str_match(adres, '(.+)@(.+\\..+)')
 ```
 
 Udało się! W kolejnych kolumnach macierzy mamy cąłe dopasowanie (jak w str_extract) oraz kolejne fragmenty (imię i domenę).
@@ -94,11 +104,12 @@ adresy_df <- data.frame(A = c('michal.ziembowicz@mediacom.com'
 lapply(adresy_df, str_match, '^(.+)@(.+\\..+)$')
 ```
 
+
 # Regex Quickstart
 
-## Dopasowywanie znaków
+## Kropka .
 
-Zacznijmy od dopasowywania pojedynczych znaków. Znak specjalny '```.```' zastępuje dowolny znak (w tym spację i tab!)
+Zacznijmy od dopasowywania pojedynczych znaków. Znak specjalny '```.```' zastępuje prawie każdy inny znak (w tym spację i tab!)
 
 Jako bazy użyjemy ramki z kolumną zawierająca rózne napisy:
 ```{r}
@@ -106,9 +117,10 @@ napisy_df <- data.frame(napis = c('abc', '12345', '', NA, 'abc123', '   ', '\t')
                         , stringsAsFactors = F)
 ```
 
+Są tu litery, liczby, białe znaki i NA. Zobaczmy czy wszystkie można zastąpić kropką.
+
 ---
 
-Dopasujmy teraz różne ilości kropek:
 ```{r}
 napisy_df$dopasowanie1 <- str_extract(napisy_df$napis, '.')
 napisy_df$dopasowanie2 <- str_extract(napisy_df$napis, '..')
@@ -116,9 +128,11 @@ napisy_df$dopasowanie3 <- str_extract(napisy_df$napis, '...')
 pander::pander(napisy_df)
 ```
 
+<br>
+
 Bardzo ładnie, ale mało praktycznie...
 
----
+## Kwantyfikatory
 
 Znaki ```?```, ```+``` i ```*``` pozwalają na dopasowanie wielu jednakowych znaków jednocześnie. 
 
@@ -126,14 +140,13 @@ Znaki ```?```, ```+``` i ```*``` pozwalają na dopasowanie wielu jednakowych zna
 - ```+```  - 1 lub więcej wystąpień znaku
 - ```*```  - 0 lub więcej wystąpień znaku
 
-Zobaczmy:
 
 ```{r}
-napisy_df <- data.frame(napis = c('aaa', '1224445', '', NA, 'abc123')
+napisy_df <- data.frame(napis = c('aaa', '1224445', '', 'abc123')
                         , stringsAsFactors = F)
-napisy_df$`dopasowanie .+` <- str_extract(napisy_df$napis, '.+')
-napisy_df$`dopasowanie .*` <- str_extract(napisy_df$napis, '.*')
-napisy_df$`dopasowanie .?` <- str_extract(napisy_df$napis, '.?')
+napisy_df$`.+` <- str_extract(napisy_df$napis, '.+')
+napisy_df$`.*` <- str_extract(napisy_df$napis, '.*')
+napisy_df$`.?` <- str_extract(napisy_df$napis, '.?')
 pander::pander(napisy_df)
 ```
 
@@ -151,20 +164,50 @@ napisy_df <- data.frame(napis = c('aa', 'aaa', 'aaaaaaaa')
                         , stringsAsFactors = F)
 napisy_df$`dopasowanie .{2}` <- str_extract_all(napisy_df$napis, '.{2}')
 napisy_df$`dopasowanie .{2,}` <- str_extract_all(napisy_df$napis, '.{3,}')
-napisy_df$`dopasowanie .{2,4}` <- str_extract_all(napisy_df$napis, '.{3,4}')
+napisy_df$`dopasowanie .{2,4}` <- str_extract_all(napisy_df$napis, '.{2,4}')
 pander::pander(napisy_df)
 ```
 
----
+## Greedy vs. Lazy
 
 Tu jest miejsce na ważną dygresję o wyrażeniach **zachłannych** i **leniwych** czyli **greedy** i **lazy**.
 
+wyrażenia regularne domyślnie dopasowywane są
+
+- **od lewej do prawej**
+- **znak po znaku**
+- **zachłannie (greedy)**
+
+Ostatni punkt oznacza, że dopasowane zostanie jak najwięcej znaków spełniajacych regułę.
+
+Spójrzmy raz jeszcze na napis **'aaaaaaaa'**. Reguła **'.{2,4}'** dopasowała do niego 2 ciągi po 4 znaki 'a'.
+
+**aaaa aaaa**
+
+A dlaczego nie 4 ciagi po 2 znaki. Spróbujmy dodać do reguły znak: '**?**':
+
 ---
 
-Dopasowywanie dowolnych znaków jest nudne. Spróbujmy poszukać bardziej specyficznego:
+```{r}
+str_extract_all('aaaaaaaa', '.{2,4}?')
+```
+
+Znak **'?'** zmienia wyrażenie z zachłannego na leniwe (**'lazy'**). O ile wyrażenia zachłanne zagarniają z naszego napisu ile sie da, to leniwe zadowalają się w pierwszym momencie, w którym wyrażenie jest spełnione (nie przypadkiem stosujemy tu znak **'?'**, który oznacza dopasowanie 0 lub 1 elementów)
+
+1. Reguła **'.{2,4}'** / **'.{2,4}?'** dopasowuje od 2 do 4 znaków. 
+2. wyrażenie przechodzi znak po znaku od lewej strony. Po napotkaniu pierwszego znaku **'a'** przyjmuje go i idzie dalej.
+3. kolejny znak dla reguły **'leniwej'** wystarcza, by uznała pracę za wykonaną wiec kończy, zwracając ciąg **'aa'**
+4. reguła zachłanna idzie dalej i zatrzymuje się dopiero po czwartym znaku, zwracając ciąg ***'aaaa'***
+
+Rozróznienie reguł na zachłanne i leniwe jest bardzo istotne w konstruowaniu wyrażeń regularnych i jeszcze kilka razy powróci
+
+
+## Klasy znaków
+
+Dopasowywanie dowolnych znaków jest nudne. Spróbujmy poszukać czegoś bardziej specyficznego:
 
 ```{r results='asis'}
-napisy_df <- data.frame(napis = c('abc', '12345', 'a-1', NA, 'abc123', '\t')
+napisy_df <- data.frame(napis = c('abc', '12345', 'a-1', 'abc123')
                         , stringsAsFactors = F)
 napisy_df$`\\\\s+`<- str_extract(napisy_df$napis, '\\s+') # białe znaki
 napisy_df$`\\\\S+` <- str_extract(napisy_df$napis, '\\S+') # nie białe znaki
@@ -177,7 +220,7 @@ pander::pander(as.data.frame(napisy_df))
 
 ---
 
-Używając notacji **```[ ]```** możemy Jeszcze bardziej specyficznie określić klasę poszukiwanych znaków:
+Używając notacji **```[ ]```** możemy jeszcze bardziej specyficznie określić klasę poszukiwanych znaków:
 
 ```{r}
 napis <- c('mediacom', 'Mediacom', 'Starcom', 'm123')
@@ -195,6 +238,8 @@ str_extract(napis, '[1-9]+')
 str_extract(napis, '[1-9A-M]+')
 ```
 
+**UWAGA!** wewnątrz nawisów nie używamy spacji, ani innych znaków rozdzielajacych (cthyba, że maja być jednych wyszukiwanych elementów)
+
 ---
 
 Notacja **```[ ]```** pozwala na wyszukanie pewnej liczby znaków określonej kategorii, ale bez zachowania kolejności:
@@ -211,3 +256,314 @@ Gdybysmy jednak chcieli wyszukać napis **'aaabbbccc'** (każda litera po 3 razy
 str_extract(napisy, 'a{3}b{3}c{3}')
 ```
 
+Za pomocą znaku '**^**' wykluczamy znaki z klasy (wszystkie na raz w całym nawiasie)
+
+```{r}
+str_extract(napisy, '[^ac]+')
+```
+
+
+## Alteracje
+
+Za pomocą znaku '**|**' dopasowujemy jedną z mozliwych wersji napisu:
+
+```{r}
+napisy_df <- data.frame(napis = c('pies', 'kot', 'kanarek')
+                        , stringsAsFactors = F)
+napisy_df$`'pies|kot'` <- str_extract_all(napisy_df$napis, 'pies|kot')
+napisy_df$`'pies|kanarek'` <- str_extract_all(napisy_df$napis, 'pies|kanarek')
+napisy_df$`'pies|kot|kanarek'` <- str_extract_all(napisy_df$napis, 'pies|kot|kanarek')
+pander::pander(napisy_df)
+
+```
+
+---
+
+A gdybyśmy chcieli dopasować nie pojedyńcze wyrazy a fragmenty zdania?
+
+```{r}
+napisy_df <- data.frame(napis = c('Mały pies głośno szczeka',
+                                  'Mały kot głośno miauczy',
+                                  'Mały kanarek głośno śpiewa')
+                        , stringsAsFactors = F)
+napisy_df$`'Mały pies|kot|kanarek głośno szczeka|miauczy|śpiewa'` <- str_extract_all(napisy_df$napis, 'Mały pies|kot|kanarek głośno szczeka|miauczy|śpiewa')
+pander::pander(napisy_df)
+
+```
+
+<br>
+
+Coś wyszło ***bardzo*** nie tak...
+
+## Grupowanie
+
+Aby osiągnąć to, o co nam chodziło, musimy wprowadzić dodatkowo symbole '**(**' i '**)**', które pozwalają wydzielać niezależne grupy w ramach całego napisu. Popatrzmy:
+
+```{r}
+napisy_df <- data.frame(napis = c('Mały pies głośno szczeka',
+                                  'Mały kot głośno miauczy',
+                                  'Mały kanarek głośno śpiewa')
+                        , stringsAsFactors = F)
+napisy_df$`'Mały (pies|kot|kanarek) głośno (szczeka|miauczy|śpiewa)'` <- str_extract_all(napisy_df$napis, 'Mały (pies|kot|kanarek) głośno (szczeka|miauczy|śpiewa)')
+pander::pander(napisy_df)
+
+```
+
+---
+
+Inny ciekawy use case z użuciem grup:
+
+```{r}
+napisy_df <- data.frame(napis = c('November, 21st',
+                                  'Nov, 23rd',
+                                  'Nov, 25',
+                                  'November 18th')
+                        , stringsAsFactors = F)
+napisy_df$`''Nov(ember)?,? \\d{1,2}(st|nd|rd|th)?''` <- str_extract_all(napisy_df$napis,
+                                                                  'Nov(ember)?,? \\d{1,2}(st|nd|rd|th)?')
+pander::pander(napisy_df)
+```
+
+
+---
+
+<br>
+
+Do grup za chwilę powrócimy.
+
+## Kotwice (anchors)
+
+Kotwice **anchors** to specjalna kategoria dopasowań, które odpowiadają nie znakom, a charakterystycznym miejscom w napisie. W szczególności mogą to być znaki poczatku i końca linii: '**^**' i '**$**' (jest dużo więcej rodzajów kotwic, ale to temat na osobną prezentację...). 
+
+Kotwic używamy gdy:
+
+- kiedy zalezy nam na dopaswaniu dokładnie jego początku lub końca.
+- nasz napis składa się z wielu linii
+
+---
+
+Dopasowanie poczatku lub końca linii:
+
+```{r}
+napisy_df <- data.frame(napis = c('Michał Ziembowicz',
+                                  'Elizeusz Gerard Karp',
+                                  'Brian Peter George St John le Baptiste de la Salle Eno')
+                        , stringsAsFactors = F)
+napisy_df$`^\\\\S+ ` <- str_extract_all(napisy_df$napis, '^\\S+ ')
+napisy_df$` \\\\S+$` <- str_extract_all(napisy_df$napis, ' \\S+$')
+pander::pander(napisy_df)
+```
+
+## Capturing groups i backreferences
+
+W wyrażeniu regularnym, w którym oznaczyliśmy grupy (za pomocą nawiasów), możemy sie do tych grup potem ponownie odwołać. W tym celu używamy zapisu: **\\\\1**, **\\\\2**, **\\\\n** gdzie **n** jest numerem kolejnej grupy
+
+Za pomocą **backreference** możemy na przykład dopasować zamykający tag HTML:
+
+```{r}
+napisy <- c('<p>jakiś paragraf</p>', '<li>jakiś punkt</li>','<a>jakiś link</a>')
+str_extract_all(napisy, '<p>.+<\\/p>', simplify = T) # bez bakcreference
+```
+
+```{r}
+str_extract_all(napisy, '<(.+)>.+<\\/\\1>', simplify = T) # z bakcreference
+```
+
+---
+
+Tu bardziej praktyczny przykład parsowania kawałka kodu HTML w celu wyciągnięcia najgłebszych tagów z ich zawrtościa
+
+```{r}
+html <- '<html><body><h2>An Unordered HTML List</h2><ul><li>Coffee</li><li>Tea</li><li>Milk</li></ul>
+<h2>An Ordered HTML List</h2><ol><li>Coffee</li><li>Tea</li><li>Milk</li></ol></body></html>'
+
+str_extract_all(html, '<(\\w+)>[^<]+<\\/\\1>?')[[1]]
+```
+
+---
+
+Dużo bardziej użyteczne wykorzystanie **backreference** to wycinanie lub zastępowanie fragmentów napisów. 
+
+wykorzystamy do tego celu funkcję **stringr::str_match**. 
+
+```{r}
+napisy <- c('to jest długi tekst, który zawiera w sobie jakiś numer. Na przykład 42 ;)', 'A to inny długi tekst, ktory ma numer 12345 w innym miejscu.')
+str_match(napisy, '\\D*(\\d+)\\D*')
+```
+
+---
+
+To wyrażenie pozwala na znalezienie jednego dokładnie 1 numeru w tekście, przy większej liczbie sobie nie radzi:
+
+```{r}
+napisy <- c('to jest długi tekst, który zawiera w sobie jakiś numer. Na przykład 42 i jeszcze jeden, powiedzmy 500')
+str_match(napisy, '\\D*(\\d+)\\D*')[[1]]
+```
+Oczywiście możemy je zmienić tak, aby łapało 2 liczby
+
+```{r}
+napisy <- c('to jest długi tekst, który zawiera w sobie jakiś numer. Na przykład 42 i jeszcze jeden, powiedzmy 500')
+str_match(napisy, '\\D*(\\d+)\\D*(\\d+)\\D*')
+```
+<br>
+Ale spowodowanie żeby znajdowało dowolną ilość liczb jest już ***nietrywialne***. Spróbujcie ;)
+
+---
+
+Czasem chcemy posłużyć się jakąś grupą, ale jej nie raportować. Służy do tego notacja '**(?:)**'
+
+Jeśli chciałbym złapać zawartość wszystkich tagów '**li**' (wypunktowanie), ale z pominięciem samego tagu:
+
+```{r}
+html <- '<html><body><h2>An Unordered HTML List</h2><ul><li>Coffee</li><li>Tea</li><li>Milk</li></ul>
+<h2>An Ordered HTML List</h2><ol><li>Coffee</li><li>Tea</li><li>Milk</li></ol></body></html>'
+
+str_match_all(html, '(?:<li>([^<]*)</li>)')
+```
+
+Funkcja **stringr::str_match_all** zwraca listę macierzy. Aby dostać tylko interesującą nas informację należy wykonać odpowiednie elementy:
+```{r}
+str_match_all(html, '(?:<li>([^<]*)</li>)')[[1]][,2]
+```
+
+## lookaheads & lookbehinds
+
+**Lookaheads** i **lookbehinds** pozwalają dopasować fragment ciągu bezpośrednio po lub przed znakiem:
+
+- **'(?=regex)'** - *positive lookahead* - dopasowuje ciąg po którym występuje określone wyrażenie regularne
+- **'(?!regex)'** - *negative lookahead* - dopasowuje ciąg po którym **nie** występuje określone wyrażenie regularne
+
+Wyciągamy tylko ceny:
+```{r}
+napisy <- c('Quantity: 10, price: 100zł', 'Quantity: 12, price: 123', 'Quantity: 5, price: 42 PLN')
+str_extract(napisy, '\\d+(?= ?(zł|PLN))') #positive lookahead
+```
+
+Wyciągamy tylko ilości:
+```{r}
+str_extract(napisy, '\\d+(?! ?(zł|PLN))') #negative lookahead 
+```
+
+---
+
+- **'(?<=regex)'** - *positive lookbehind* - dopasowuje ciąg przed którym występuje określone wyrażenie regularne
+- **'(?<!regex)'** - *negative lookbehind* - dopasowuje ciąg przed którym **nie** występuje określone wyrażenie regularne
+
+Wyciągamy tylko ceny:
+```{r}
+napisy <- c('Quantity: 10, price: £100', 'Quantity: 12, price: €123', 'Quantity: 5, price: $42')
+str_extract(napisy, '(?<= (£|\\$))\\d+') #positive lookbehind
+```
+
+Wyciągamy tylko ilości:
+```{r}
+str_extract(napisy, '(?<! (£|\\$|€))\\d+') #negative lookbehind
+```
+---
+
+# Use cases
+
+## Dopasowywanie adresu email
+
+Oto przyład z poczatku prezentacji, który teraz troche rozbudujemy:
+
+```{r}
+adres <- 'michal.ziembowicz@mediacom.com'
+str_match(adres, '(.+)@(.+\\..+)')
+```
+
+```{r}
+adres <- 'michal.ziembowicz@mediacom.com'
+str_match(adres, regex('^(?:([A-Z0-9]+)\\.)?([A-Z0-9]+)@([A-Z0-9]+)\\.([A-Z0-9]{2,})$', ignore_case = T))
+
+```
+
+To wciąż jest bardzo podstawowa wersja, nadaje się tylko do adresów typu imie.nazwisko@host.domena lub nazwisko@host.domena ale już nie: nazwisko@host.host.domena albo imie.imie.nazwisko@host.domena.
+
+Polecam: https://www.regular-expressions.info/email.html - nie jest łatwo... (sprawdź: http://www.ex-parrot.com/~pdw/Mail-RFC822-Address.html)
+
+## Zamiana napisów
+
+Obok funkcji **stringr::str_extract** i **stringr::str_match** warto wskazać jeszcze **stringr::str_replace**, która pozwala wstawić nowy ciąg w miejsce dopasowanego wyrażenia.
+
+Używam jej często przy pracy z zapytaniami SQL, ale może się potencjalnie przydać w innych sytuacjach. Na przykład, mamy listę kolumn tabeli, z której tworzymy schemat tabeli w formie JSON:
+
+```{r}
+kolumny <- c('Event_Time INTEGER','User_ID STRING', 'Advertiser_ID INTEGER','Campaign_ID INTEGER',
+             'Ad_ID INTEGER', 'Rendering_ID INTEGER', 'Creative_Version INTEGER', 'Site_ID__DCM_ INTEGER')
+result <- paste0('[\n', paste0(str_replace_all(kolumny, '^(.+) (.+)$', '\t{"name": "\\1", "type": "\\2"},'),
+                               collapse = '\n'), '\n]')
+cat(result)
+```
+
+Oczywiście kolumn jest w rzeczywistości dużo więcej...
+
+---
+
+Inny przykład. Z listy kolumn buduję zapytanie SQL:
+
+```{r}
+kolumny <- c('AD_TRACKING', 'AD_STANDARD', 'AD_DEFAULT', 'AD_IN_STREAM_VID'
+             , 'AD_IN_STREAM_DEFAULT', 'AD_OTHER')
+header <- 'SELECT User_ID'
+footer <- 'FROM {{ params.bq_schema }}.dict_ads\nGROUP BY User_ID'
+result <- paste0(header, '\n'
+                 , paste0(str_replace_all(kolumny
+                                          , '^(.+)$'
+                                          , replacement = '\t, IF(SUM(\\1) > 0, 1, 0) AS \\1')
+                          , collapse = '\n')
+                 , '\n', footer)
+cat(result)
+
+```
+Jeśli teraz chcę dodać lub usunąć kolumny, wystarczy, że zmodyfikuję wektor 'kolumny' i mogę stworzyć nowe zapytanie
+
+## Regex w tidyverse
+
+W ramach pakietu tidyverse możemy korzystać z wyrażeń regularnych na przykład w funkcji **tidyr::extract** (porzyczone z sieci):
+```{r}
+library(tidyr)
+df <- tribble(
+  ~filename,
+  "2008_some_name_author1.xlsx",
+  "2008_some_name_author2.xlsx",
+  "2008_some_name_author3.xlsx"
+)
+
+pattern <- "(\\d+).*_([^_]*).xlsx"
+
+extract(df, filename, c("year", "author"), pattern)
+```
+
+---
+
+Dane od Kuby K.
+W ramce mamy 59 kolumn zawierających napisy typu: **'ES-NL-10633096/1938/X1@hkzydbezon.dk/6749'**. Interesuje nas wyciągnięcie nazw znajdujących się pomiędzy znakiem '@', a domeną (w tym wypadku '.dk'), ale tylko wtedy gdy domena to '.pl', a następnie policzenie wystąpień każdej nazwy.
+
+```{r}
+library(readr)
+df <- suppressMessages(read_delim('../DATA/dane.csv', delim = ';'))
+```
+
+Zacznijmy od ograniczenia ramki do 3 kolumn, żeby była trochę mniejsza (i żeby użyć funkcji 'matches') a potem zmieńmy ja na długi format:
+
+```{r}
+suppressMessages(library(dplyr))
+suppressMessages(library(tidyr))
+df_narrow <- df %>% select(matches('^[123]: .+$')) %>% #regex !!!
+  gather('key', 'value') %>% select(value)
+head(df_narrow)
+```
+
+---
+Teraz do kolumny 'value' przyłóżmy wyrażenie regularne za pomocą funkcji 'tidyr::extract'
+```{r}
+df_narrow %>% extract(value, c('extracted', 'domain'), '^.+@(.+)\\.(.+)\\/.*$') %>%
+  filter(domain == 'pl') %>%
+  group_by(extracted) %>%
+  summarise(N = n()) %>%
+  ungroup() %>%
+  arrange(desc(N))
+```
+
+# Dziękuję za uwagę !
